@@ -1,58 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model User {
   id           Int      @id @default(autoincrement())
   name         String
   email        String   @unique
-  phone        String?
-  passwordHash String
-  role         Role     @default(customer)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         String
   bookings     Booking[] @relation("CustomerBookings")
-  staffJobs    Booking[] @relation("StaffBookings")
+  assigned     Booking[] @relation("StaffBookings")
 }
 
 model Service {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float?
-  duration    Int?
-  createdAt   DateTime @default(now())
-  bookings    Booking[]
+  id        Int       @id @default(autoincrement())
+  name      String
+  price     Float
+  duration  Int
+  bookings  Booking[]
 }
 
 model Booking {
   id          Int      @id @default(autoincrement())
-  customer    User     @relation("CustomerBookings", fields: [customerId], references: [id])
+  customer    User     @relation("CustomerBookings", fields:[customerId], references:[id])
   customerId  Int
-  service     Service  @relation(fields: [serviceId], references: [id])
+  service     Service  @relation(fields:[serviceId], references:[id])
   serviceId   Int
-  staff       User?    @relation("StaffBookings", fields: [staffId], references: [id])
+  staff       User?    @relation("StaffBookings", fields:[staffId], references:[id])
   staffId     Int?
-  status      BookingStatus @default(pending)
-  bookingDate DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-enum Role {
-  customer
-  staff
-  admin
-}
-
-enum BookingStatus {
-  pending
-  confirmed
-  completed
-  cancelled
+  status      String   @default("pending")
+  bookingDate DateTime @default(now())
 }
