@@ -15,7 +15,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Serve install folder if you have assets
+// Serve install folder (if you have assets)
 app.use("/install", express.static(path.join(process.cwd(), "install")));
 
 // Helper to send SSE messages
