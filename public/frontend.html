@@ -82,4 +82,70 @@ async function fetchServicesTable(){
     tr.innerHTML=`<td>${svc.id}</td>
       <td contenteditable="true" onblur="updateService(${svc.id},'name',this.innerText)">${svc.name}</td>
       <td contenteditable="true" onblur="updateService(${svc.id},'price',this.innerText)">${svc.price}</td>
-      <td contenteditable="true" onblur="updateService(${svc.id},'duration',this
+      <td contenteditable="true" onblur="updateService(${svc.id},'duration',this.innerText)">${svc.duration}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function fetchBookings(){
+  const statusFilter=document.getElementById("statusFilter").value;
+  const staffFilter=document.getElementById("staffFilter").value;
+  const customerSearch=document.getElementById("customerSearch").value.toLowerCase();
+  const res=await fetch(`/bookings?page=${currentPage}&pageSize=${pageSize}`);
+  let data=await res.json(); let bookings=data.bookings;
+  bookings=bookings.filter(b=>{
+    return (!statusFilter || b.status===statusFilter) &&
+           (!staffFilter || (b.staffId && b.staffId.toString()===staffFilter)) &&
+           (!customerSearch || b.customer.email.toLowerCase().includes(customerSearch));
+  });
+  const tbody=document.getElementById("bookingsTable").querySelector("tbody"); tbody.innerHTML="";
+  bookings.forEach(b=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${b.id}</td>
+      <td>${b.customer.name} (${b.customer.email})</td>
+      <td>${b.service.name}</td>
+      <td><select onchange="updateBooking(${b.id},'staff',this.value)">
+        <option value="">-</option>${staffUsers.map(s=>`<option value="${s.id}" ${b.staffId===s.id?'selected':''}>${s.name}</option>`).join('')}
+      </select></td>
+      <td><select onchange="updateBooking(${b.id},'status',this.value)">
+        ${["pending","confirmed","completed","cancelled"].map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td>${new Date(b.bookingDate).toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("currentPage").innerText=currentPage;
+}
+
+async function updateBooking(id,field,value){
+  const body=field==='staff'?{staffId:value?Number(value):null}:{status:value};
+  await fetch(`/bookings/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  updateTables();
+}
+
+async function updateUser(id,field,value){
+  const body={}; body[field]=field==="price"||field==="duration"?Number(value):value;
+  await fetch(`/users/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  updateTables();
+}
+
+async function updateService(id,field,value){
+  const body={}; body[field]=field==="price"||field==="duration"?Number(value):value;
+  await fetch(`/services/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  updateTables();
+}
+
+function prevPage(){ if(currentPage>1){currentPage--;updateTables();} }
+function nextPage(){ currentPage++;updateTables(); }
+
+async function updateTables(){
+  await fetchDbSummary();
+  await fetchUsers();
+  await fetchStaffUsers();
+  await fetchServicesTable();
+  await fetchBookings();
+}
+
+updateTables();
+</script>
+</body>
+</html>
