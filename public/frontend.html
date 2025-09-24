@@ -3,83 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Garage Booking Frontend</title>
+<title>Garage Admin Panel</title>
 <style>
-html, body { height:100%; margin:0; display:flex; justify-content:center; align-items:flex-start; font-family:sans-serif; background:#f4f4f4; }
-.container { width:90%; max-width:600px; margin-top:30px; }
-h1 { text-align:center; }
-select, button, input { width:100%; padding:10px; margin:10px 0; font-size:16px; }
-ul { list-style:none; padding:0; }
-li { padding:8px; background:white; margin-bottom:5px; border-radius:5px; }
+body { font-family:sans-serif; padding:20px; }
+table { border-collapse: collapse; width:100%; margin-bottom:20px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+th { background:#eee; }
+select, input { padding:4px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Garage Booking</h1>
+<h2>Garage Admin Panel</h2>
 
-  <h3>Available Services</h3>
-  <ul id="servicesList"></ul>
+<h3>DB Summary</h3>
+<ul>
+<li>Users: <span id="usersCount">0</span></li>
+<li>Services: <span id="servicesCount">0</span></li>
+<li>Bookings: <span id="bookingsCount">0</span></li>
+</ul>
 
-  <h3>Create Booking</h3>
-  <select id="serviceSelect"></select>
-  <input type="text" id="customerEmail" placeholder="Customer email">
-  <button onclick="createBooking()">Book Service</button>
+<h3>Bookings Filters</h3>
+<label>Status: <select id="statusFilter" onchange="updateTables()"><option value="">All</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+<label>Staff: <select id="staffFilter" onchange="updateTables()"><option value="">All</option></select></label>
+<label>Customer: <input type="text" id="customerSearch" placeholder="Search by email" oninput="updateTables()"></label>
 
-  <p id="status"></p>
-</div>
+<h3>Bookings</h3>
+<table id="bookingsTable"><thead><tr><th>ID</th><th>Customer</th><th>Service</th><th>Staff</th><th>Status</th><th>Date</th></tr></thead><tbody></tbody></table>
+<div><button onclick="prevPage()">Previous</button> Page <span id="currentPage">1</span> <button onclick="nextPage()">Next</button></div>
+
+<h3>Users</h3>
+<table id="usersTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody></tbody></table>
+
+<h3>Services</h3>
+<table id="servicesTable"><thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Duration</th></tr></thead><tbody></tbody></table>
 
 <script>
-// Set the backend API URL to your Render deployment
-const API_BASE = "https://your-backend-service.onrender.com";
+let currentPage=1, pageSize=20, staffUsers=[];
 
-async function fetchServices() {
-  const res = await fetch(`${API_BASE}/services`);
-  const services = await res.json();
-  const list = document.getElementById("servicesList");
-  const select = document.getElementById("serviceSelect");
-  list.innerHTML = "";
-  select.innerHTML = "";
-  services.forEach(svc => {
-    const li = document.createElement("li");
-    li.innerText = `${svc.name} - $${svc.price} - ${svc.duration} min`;
-    list.appendChild(li);
+async function fetchDbSummary(){
+  const res=await fetch("/db-summary");
+  const s=await res.json();
+  document.getElementById("usersCount").innerText=s.users;
+  document.getElementById("servicesCount").innerText=s.services;
+  document.getElementById("bookingsCount").innerText=s.bookings;
+}
 
-    const option = document.createElement("option");
-    option.value = svc.id;
-    option.innerText = svc.name;
-    select.appendChild(option);
+async function fetchUsers(){
+  const res=await fetch("/users"); const users=await res.json();
+  const tbody=document.getElementById("usersTable").querySelector("tbody"); tbody.innerHTML="";
+  users.forEach(u=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${u.id}</td>
+      <td contenteditable="true" onblur="updateUser(${u.id},'name',this.innerText)">${u.name}</td>
+      <td contenteditable="true" onblur="updateUser(${u.id},'email',this.innerText)">${u.email}</td>
+      <td><select onchange="updateUser(${u.id},'role',this.value)">
+        <option value="customer" ${u.role==='customer'?'selected':''}>Customer</option>
+        <option value="staff" ${u.role==='staff'?'selected':''}>Staff</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+      </select></td>`;
+    tbody.appendChild(tr);
   });
 }
 
-async function createBooking() {
-  const serviceId = document.getElementById("serviceSelect").value;
-  const email = document.getElementById("customerEmail").value;
-  if(!email) return alert("Enter customer email");
-
-  try {
-    // Create user (if not exists)
-    await fetch(`${API_BASE}/users`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ name: email.split("@")[0], email, passwordHash:"test123", role:"customer" })
-    });
-
-    // Create booking
-    const res = await fetch(`${API_BASE}/bookings`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ customerId:1, serviceId:Number(serviceId), bookingDate:new Date().toISOString(), status:"pending" })
-    });
-
-    const data = await res.json();
-    document.getElementById("status").innerText = "✅ Booking created: " + JSON.stringify(data);
-  } catch (err) {
-    document.getElementById("status").innerText = "❌ Error: " + err.message;
-  }
+async function fetchStaffUsers(){
+  const res=await fetch("/users"); const all=await res.json();
+  staffUsers=all.filter(u=>u.role==='staff'); populateStaffFilter();
 }
 
-// Fetch services on page load
-fetchServices();
-</script>
-</body>
-</html>
+function populateStaffFilter(){
+  const sel=document.getElementById("staffFilter"); sel.innerHTML=`<option value="">All</option>`+staffUsers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+async function fetchServicesTable(){
+  const res=await fetch("/services"); const services=await res.json();
+  const tbody=document.getElementById("servicesTable").querySelector("tbody"); tbody.innerHTML="";
+  services.forEach(svc=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${svc.id}</td>
+      <td contenteditable="true" onblur="updateService(${svc.id},'name',this.innerText)">${svc.name}</td>
+      <td contenteditable="true" onblur="updateService(${svc.id},'price',this.innerText)">${svc.price}</td>
+      <td contenteditable="true" onblur="updateService(${svc.id},'duration',this
