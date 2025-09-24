@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garage Booking Installation</title>
+<style>
+html, body { height:100%; margin:0; display:flex; justify-content:center; align-items:center; font-family:sans-serif; }
+.container { text-align:center; width:90%; max-width:500px; }
+input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Garage Booking Installation</h1>
+  <p>Enter your Postgres connection string:</p>
+  <input type="text" id="dbString" placeholder="postgresql://user:pass@host:port/dbname">
+  <button onclick="install()">Install</button>
+  <p id="status"></p>
+</div>
+<script>
+async function install() {
+  const dbString = document.getElementById("dbString").value;
+  if(!dbString) return alert("Enter the connection string");
+  const res = await fetch("/install", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ DATABASE_URL: dbString }) });
+  const data = await res.json();
+  document.getElementById("status").innerText = data.message;
+}
+</script>
+</body>
+</html>
