@@ -1,0 +1,7 @@
+"scripts": {
+  "dev": "nodemon index.js",
+  "start": "node index.js",
+  "migrate:dev": "prisma migrate dev",
+  "migrate:deploy": "prisma migrate deploy",
+  "generate": "prisma generate"
+}
