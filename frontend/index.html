@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Garage Booking Installer</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
+    h1 { color: #333; }
+    pre { background: #fff; padding: 15px; border-radius: 5px; max-height: 500px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>Garage Booking Installer</h1>
+  <pre id="output">Initializing...</pre>
+
+  <script>
+    (async () => {
+      const output = document.getElementById("output");
+
+      // Set your URLs
+      const BACKEND_URL = "https://YOUR_VERCEL_BACKEND_URL/api";
+      const DATABASE_URL = "postgresql://USERNAME:PASSWORD@HOST:PORT/DBNAME";
+
+      if (!BACKEND_URL || !DATABASE_URL) {
+        output.textContent = "Please set both BACKEND_URL and DATABASE_URL in the script.";
+        return;
+      }
+
+      try {
+        output.textContent = "Installing database...\n";
+
+        const installRes = await fetch(`${BACKEND_URL}/install`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ databaseUrl: DATABASE_URL })
+        });
+        const installText = await installRes.text();
+        output.textContent += installText + "\n";
+
+        output.textContent += "Fetching database summary...\n";
+        const summaryRes = await fetch(`${BACKEND_URL}/dbSummary`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ databaseUrl: DATABASE_URL })
+        });
+        const summaryData = await summaryRes.json();
+        output.textContent += JSON.stringify(summaryData.tables, null, 2);
+
+      } catch (err) {
+        output.textContent += "Error: " + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>
