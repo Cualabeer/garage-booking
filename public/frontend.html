@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garage Booking Test Frontend</title>
+<style>
+html, body { height:100%; margin:0; display:flex; justify-content:center; align-items:flex-start; font-family:sans-serif; background:#f4f4f4; }
+.container { width:90%; max-width:600px; margin-top:30px; }
+h1 { text-align:center; }
+select, button, input { width:100%; padding:10px; margin:10px 0; font-size:16px; }
+ul { list-style:none; padding:0; }
+li { padding:8px; background:white; margin-bottom:5px; border-radius:5px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Garage Booking Test</h1>
+  <h3>Available Services</h3>
+  <ul id="servicesList"></ul>
+  <h3>Create Booking</h3>
+  <select id="serviceSelect"></select>
+  <input type="text" id="customerEmail" placeholder="Customer email">
+  <button onclick="createBooking()">Book Service</button>
+  <p id="status"></p>
+</div>
+<script>
+async function fetchServices() {
+  const res = await fetch("/services");
+  const services = await res.json();
+  const list = document.getElementById("servicesList");
+  const select = document.getElementById("serviceSelect");
+  list.innerHTML = ""; select.innerHTML = "";
+  services.forEach(svc => {
+    const li = document.createElement("li"); li.innerText = `${svc.name} - $${svc.price} - ${svc.duration} min`; list.appendChild(li);
+    const option = document.createElement("option"); option.value = svc.id; option.innerText = svc.name; select.appendChild(option);
+  });
+}
+async function createBooking() {
+  const serviceId = document.getElementById("serviceSelect").value;
+  const email = document.getElementById("customerEmail").value;
+  if(!email) return alert("Enter customer email");
+  await fetch("/users", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name: email.split("@")[0], email, passwordHash:"test123", role:"customer" }) });
+  const res = await fetch("/bookings", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ customerId:1, serviceId:Number(serviceId), bookingDate:new Date().toISOString(), status:"pending" }) });
+  const data = await res.json();
+  document.getElementById("status").innerText = "✅ Booking created: " + JSON.stringify(data);
+}
+fetchServices();
+</script>
+</body>
+</html>
