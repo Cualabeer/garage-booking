@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Install Garage System</title>
+<style>
+body { display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; background:#f4f4f4; }
+.container { background:white; padding:30px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); width:400px;}
+input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Garage System Installation</h2>
+  <input type="text" id="dbUrl" placeholder="PostgreSQL Connection String">
+  <button onclick="install()">Install</button>
+  <p id="status"></p>
+
+  <h3>Reset Database</h3>
+  <input type="password" id="resetSecret" placeholder="Enter secret key">
+  <button onclick="resetDb()">Reset Database</button>
+  <p id="resetStatus"></p>
+</div>
+
+<script>
+async function install() {
+  const dbUrl = document.getElementById("dbUrl").value;
+  if(!dbUrl) return alert("Enter database connection string");
+  const res = await fetch("/install", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ DATABASE_URL: dbUrl })
+  });
+  const data = await res.json();
+  document.getElementById("status").innerText = data.message || JSON.stringify(data);
+}
+
+async function resetDb() {
+  const secret = document.getElementById("resetSecret").value;
+  if(!secret) return alert("Enter secret key");
+  const res = await fetch("/reset-db", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ secret })
+  });
+  const data = await res.json();
+  document.getElementById("resetStatus").innerText = data.message || JSON.stringify(data);
+}
+</script>
+</body>
+</html>
